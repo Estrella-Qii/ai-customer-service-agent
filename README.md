@@ -41,8 +41,6 @@
 
 后续计划：
 
-- 增加简单聊天前端页面
-- 增加单元测试和 GitHub Actions
 - 增加鉴权、限流、日志等生产能力
 
 ## 接口说明
@@ -197,6 +195,14 @@ docker compose up -d qdrant redis
 - `contexts`：检索到的原始知识片段
 
 如果不传 `session_id`，系统会自动生成一个新的会话 ID。下一次请求带上同一个 `session_id`，客服就能参考前文进行多轮对话。
+
+## 测试
+
+```powershell
+python -m unittest discover -s tests
+```
+
+项目已配置 GitHub Actions，会在 push 和 pull request 时自动运行测试。
 
 ## 知识库文档从哪里来
 
