@@ -9,6 +9,7 @@ router = APIRouter(prefix="/rag", tags=["RAG问答"])
 class RagAskRequest(BaseModel):
     question: str = Field(..., min_length=1, description="用户问题")
     top_k: int = Field(4, ge=1, le=20, description="检索多少个相关文档片段")
+    session_id: str | None = Field(None, description="会话 ID；不传则自动生成")
 
 
 @router.post("/ask")
@@ -18,6 +19,6 @@ async def ask_with_rag(req: RagAskRequest):
         raise HTTPException(400, detail="问题不能为空")
 
     try:
-        return answer_with_rag(question, req.top_k)
+        return answer_with_rag(question, req.top_k, req.session_id)
     except Exception as exc:
         raise HTTPException(500, detail=f"RAG 问答失败: {exc}") from exc

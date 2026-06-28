@@ -9,6 +9,7 @@
 - 硅基流动：提供 OpenAI-compatible API 和 Embedding
 - LangChain：文档切片、Embedding、向量库集成
 - Qdrant：向量数据库
+- Redis：保存会话记忆
 - Docker Compose：启动 Qdrant，也可以同时启动 API 服务
 
 ## 当前完成度
@@ -28,6 +29,8 @@
 - 向量入库
 - 相似度检索
 - RAG 问答接口
+- Redis 会话记忆
+- 会话历史查询与清空接口
 - 示例知识库文档
 - `.env.example` 示例配置
 - Dockerfile
@@ -35,7 +38,6 @@
 
 后续计划：
 
-- 接入 Redis 做会话记忆
 - 用 LangGraph 编排 Agent 工作流
 - 增加简单聊天前端页面
 - 增加单元测试和 GitHub Actions
@@ -56,6 +58,8 @@ http://127.0.0.1:8000/docs
 - `POST /documents/upload`：上传知识库文档，自动切片并入库
 - `GET /documents/search`：从向量库检索相关知识片段
 - `POST /rag/ask`：检索知识库后，让大模型基于资料回答
+- `GET /sessions/{session_id}/history`：查看会话历史
+- `DELETE /sessions/{session_id}`：清空会话历史
 
 ## 项目结构
 
@@ -69,6 +73,8 @@ app/
     vector_store.py    # Qdrant 向量库
     retriever.py       # 检索封装
     qa.py              # RAG 问答逻辑
+  memory/
+    store.py           # Redis 会话记忆
   llm.py               # LLM 调用封装
   main.py              # FastAPI 入口
 routers/
@@ -112,10 +118,10 @@ SILICONFLOW_API_KEY=your_siliconflow_api_key_here
 
 不要把 `.env` 上传到 GitHub。
 
-### 4. 启动 Qdrant
+### 4. 启动 Qdrant 和 Redis
 
 ```powershell
-docker compose up -d qdrant
+docker compose up -d qdrant redis
 ```
 
 ### 5. 启动 FastAPI
@@ -153,7 +159,7 @@ http://127.0.0.1:8000/docs
 如果只想启动 Qdrant，本地用 Python 跑 API：
 
 ```powershell
-docker compose up -d qdrant
+docker compose up -d qdrant redis
 ```
 
 ## 使用流程
@@ -168,15 +174,19 @@ docker compose up -d qdrant
 ```json
 {
   "question": "订单已经发货还能退款吗？",
-  "top_k": 4
+  "top_k": 4,
+  "session_id": "demo-user-001"
 }
 ```
 
 返回结果会包含：
 
 - `answer`：大模型生成的客服回复
+- `session_id`：本次会话 ID
 - `sources`：引用的文档来源
 - `contexts`：检索到的原始知识片段
+
+如果不传 `session_id`，系统会自动生成一个新的会话 ID。下一次请求带上同一个 `session_id`，客服就能参考前文进行多轮对话。
 
 ## 知识库文档从哪里来
 

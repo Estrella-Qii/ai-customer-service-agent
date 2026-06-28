@@ -1,4 +1,7 @@
+from uuid import uuid4
+
 from app.llm import chat
+from app.memory.store import get_conversation_memory
 from app.rag.retriever import retrieve
 
 
@@ -11,13 +14,15 @@ def _format_context(results: list[dict]) -> str:
         source = item.get("source", "unknown")
         chunk_index = item.get("chunk_index")
         content = item.get("content", "")
-        blocks.append(
-            f"[资料{index}] 来源: {source}, 片段: {chunk_index}\n{content}"
-        )
+        blocks.append(f"[资料{index}] 来源: {source}, 片段: {chunk_index}\n{content}")
     return "\n\n".join(blocks)
 
 
-def answer_with_rag(question: str, top_k: int = 4) -> dict:
+def answer_with_rag(question: str, top_k: int = 4, session_id: str | None = None) -> dict:
+    session_id = session_id or str(uuid4())
+    memory = get_conversation_memory()
+    history = memory.get_messages(session_id)
+
     results = retrieve(question, top_k)
     context = _format_context(results)
 
@@ -32,6 +37,7 @@ def answer_with_rag(question: str, top_k: int = 4) -> dict:
                 "回答要简洁、清楚、适合客服场景。"
             ),
         },
+        *history,
         {
             "role": "user",
             "content": (
@@ -43,9 +49,14 @@ def answer_with_rag(question: str, top_k: int = 4) -> dict:
     ]
 
     answer = chat(messages)
+    memory.append_message(session_id, "user", question)
+    memory.append_message(session_id, "assistant", answer)
+
     return {
+        "session_id": session_id,
         "question": question,
         "answer": answer,
+        "memory_backend": memory.backend(),
         "sources": [
             {
                 "source": item.get("source", "unknown"),

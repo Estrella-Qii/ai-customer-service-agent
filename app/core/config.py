@@ -16,6 +16,9 @@ class Settings(BaseModel):
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
     qdrant_url: str = os.getenv("QDRANT_URL", "http://localhost:6333")
     qdrant_collection: str = os.getenv("QDRANT_COLLECTION", "customer_service_docs")
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    max_history_messages: int = int(os.getenv("MAX_HISTORY_MESSAGES", "12"))
+    conversation_ttl_seconds: int = int(os.getenv("CONVERSATION_TTL_SECONDS", "86400"))
 
 
 @lru_cache

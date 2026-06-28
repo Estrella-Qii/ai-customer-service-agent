@@ -12,3 +12,4 @@ langchain-openai
 langchain-qdrant
 qdrant-client
 pypdf
+redis
