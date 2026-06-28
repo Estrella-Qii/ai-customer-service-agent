@@ -8,6 +8,7 @@
 - DeepSeek：作为 LLM 生成回答
 - 硅基流动：提供 OpenAI-compatible API 和 Embedding
 - LangChain：文档切片、Embedding、向量库集成
+- LangGraph：编排客服 Agent 工作流
 - Qdrant：向量数据库
 - Redis：保存会话记忆
 - Docker Compose：启动 Qdrant，也可以同时启动 API 服务
@@ -30,6 +31,7 @@
 - 相似度检索
 - RAG 问答接口
 - Redis 会话记忆
+- LangGraph Agent 工作流
 - 会话历史查询与清空接口
 - 示例知识库文档
 - `.env.example` 示例配置
@@ -38,7 +40,6 @@
 
 后续计划：
 
-- 用 LangGraph 编排 Agent 工作流
 - 增加简单聊天前端页面
 - 增加单元测试和 GitHub Actions
 - 增加鉴权、限流、日志等生产能力
@@ -73,6 +74,8 @@ app/
     vector_store.py    # Qdrant 向量库
     retriever.py       # 检索封装
     qa.py              # RAG 问答逻辑
+  agent/
+    workflow.py        # LangGraph 客服工作流
   memory/
     store.py           # Redis 会话记忆
   llm.py               # LLM 调用封装

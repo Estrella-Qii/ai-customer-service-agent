@@ -12,7 +12,7 @@ from routers.sessions import router as sessions_router
 app = FastAPI(
     title="AI 智能客服 Agent",
     description="基于 FastAPI、DeepSeek、Embedding、Redis 和 Qdrant 的 RAG 智能客服后端。",
-    version="0.2.0",
+    version="0.3.0",
 )
 app.include_router(documents_router)
 app.include_router(rag_router)
