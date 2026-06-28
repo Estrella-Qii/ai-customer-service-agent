@@ -105,6 +105,17 @@ label,
   text-transform: uppercase;
 }
 
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.section-title-row .section-header {
+  margin-bottom: 0;
+}
+
 label {
   display: block;
   margin-bottom: 6px;
@@ -183,6 +194,23 @@ label {
   width: 100%;
 }
 
+.mini-btn {
+  min-height: 28px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 10px;
+}
+
+.mini-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
 .btn-icon {
   width: 44px;
   flex-shrink: 0;
@@ -235,6 +263,61 @@ label {
 
 .status-error {
   color: var(--danger-color);
+}
+
+.document-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.document-item {
+  border: 1px solid var(--border-light);
+  border-radius: 9px;
+  background: #fff;
+  padding: 10px;
+}
+
+.document-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.document-name {
+  overflow-wrap: anywhere;
+  color: var(--text-main);
+  font-weight: 800;
+}
+
+.document-meta,
+.muted-text {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.document-preview {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.delete-doc-btn {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 6px;
+  background: #fef2f2;
+  color: var(--danger-color);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 28px;
+  padding: 0 8px;
+}
+
+.delete-doc-btn:hover {
+  background: #fee2e2;
 }
 
 .sidebar-footer {

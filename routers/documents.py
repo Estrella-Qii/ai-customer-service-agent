@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.rag.document_loader import load_and_split
 from app.rag.retriever import retrieve
-from app.rag.vector_store import add_documents
+from app.rag.vector_store import add_documents, delete_document, document_exists, list_documents
 
 router = APIRouter(prefix="/documents", tags=["文档管理"])
 
@@ -22,6 +22,10 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(400, detail="上传文件为空")
 
     try:
+        replaced = document_exists(file.filename or "uploaded_file")
+        if replaced:
+            delete_document(file.filename or "uploaded_file")
+
         chunks = load_and_split(file_bytes, file.filename or "uploaded_file")
         count = add_documents(chunks)
     except Exception as exc:
@@ -30,7 +34,35 @@ async def upload_document(file: UploadFile = File(...)):
     return {
         "filename": file.filename,
         "chunks_stored": count,
+        "replaced": replaced,
         "message": "文档已成功向量化入库",
+    }
+
+
+@router.get("")
+async def get_documents():
+    try:
+        documents = list_documents()
+    except Exception as exc:
+        raise HTTPException(500, detail=f"获取文档列表失败: {exc}") from exc
+
+    return {"documents": documents, "total": len(documents)}
+
+
+@router.delete("/{filename}")
+async def remove_document(filename: str):
+    try:
+        deleted_chunks = delete_document(filename)
+    except Exception as exc:
+        raise HTTPException(500, detail=f"删除文档失败: {exc}") from exc
+
+    if deleted_chunks == 0:
+        raise HTTPException(404, detail=f"未找到文档: {filename}")
+
+    return {
+        "filename": filename,
+        "deleted_chunks": deleted_chunks,
+        "message": "文档已从知识库删除",
     }
 
 

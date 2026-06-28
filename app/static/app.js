@@ -4,6 +4,7 @@ const elements = {
   fileNameDisplay: document.getElementById("fileNameDisplay"),
   uploadBtn: document.getElementById("uploadBtn"),
   uploadStatus: document.getElementById("uploadStatus"),
+  documentList: document.getElementById("documentList"),
   memoryStatus: document.getElementById("memoryStatus"),
   chatHistory: document.getElementById("chatHistory"),
   emptyState: document.getElementById("emptyState"),
@@ -14,6 +15,7 @@ const elements = {
   newSessionBtn: document.getElementById("newSessionBtn"),
   loadHistoryBtn: document.getElementById("loadHistoryBtn"),
   clearHistoryBtn: document.getElementById("clearHistoryBtn"),
+  refreshDocsBtn: document.getElementById("refreshDocsBtn"),
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -27,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.newSessionBtn.addEventListener("click", generateSessionId);
   elements.loadHistoryBtn.addEventListener("click", loadHistory);
   elements.clearHistoryBtn.addEventListener("click", clearHistory);
+  elements.refreshDocsBtn.addEventListener("click", loadDocuments);
   elements.sessionIdInput.addEventListener("change", saveSessionId);
 
   elements.questionInput.addEventListener("keydown", (event) => {
@@ -37,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   elements.questionInput.addEventListener("input", resizeQuestionInput);
+  loadDocuments();
 });
 
 function createSessionId() {
@@ -111,11 +115,95 @@ async function uploadDocument() {
     );
     elements.fileInput.value = "";
     elements.fileNameDisplay.textContent = "点击选择文档";
+    loadDocuments();
   } catch (error) {
     setStatus(elements.uploadStatus, error.message || "网络异常，无法上传文档", "error");
   } finally {
     elements.uploadBtn.disabled = false;
     elements.uploadBtn.textContent = "上传至知识库";
+  }
+}
+
+async function loadDocuments() {
+  elements.documentList.innerHTML = '<p class="muted-text">正在加载文档...</p>';
+
+  try {
+    const response = await fetch("/documents");
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || "获取文档列表失败");
+    }
+
+    renderDocuments(data.documents || []);
+  } catch (error) {
+    elements.documentList.innerHTML = `<p class="muted-text">${error.message || "获取文档列表失败"}</p>`;
+  }
+}
+
+function renderDocuments(documents) {
+  if (documents.length === 0) {
+    elements.documentList.innerHTML = '<p class="muted-text">暂无已入库文档</p>';
+    return;
+  }
+
+  elements.documentList.innerHTML = "";
+  documents.forEach((documentItem) => {
+    const item = document.createElement("div");
+    item.className = "document-item";
+
+    const main = document.createElement("div");
+    main.className = "document-main";
+
+    const info = document.createElement("div");
+    const name = document.createElement("div");
+    name.className = "document-name";
+    name.textContent = documentItem.filename;
+
+    const meta = document.createElement("div");
+    meta.className = "document-meta";
+    meta.textContent = `${documentItem.chunks} 个片段`;
+
+    info.appendChild(name);
+    info.appendChild(meta);
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "delete-doc-btn";
+    deleteButton.type = "button";
+    deleteButton.textContent = "删除";
+    deleteButton.addEventListener("click", () => deleteDocument(documentItem.filename));
+
+    main.appendChild(info);
+    main.appendChild(deleteButton);
+    item.appendChild(main);
+
+    if (documentItem.preview) {
+      const preview = document.createElement("div");
+      preview.className = "document-preview";
+      preview.textContent = documentItem.preview;
+      item.appendChild(preview);
+    }
+
+    elements.documentList.appendChild(item);
+  });
+}
+
+async function deleteDocument(filename) {
+  if (!confirm(`确定要删除文档「${filename}」吗？`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/documents/${encodeURIComponent(filename)}`, {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.detail || "删除失败");
+    }
+    setStatus(elements.uploadStatus, `已删除：${filename}，片段数：${data.deleted_chunks}`, "success");
+    loadDocuments();
+  } catch (error) {
+    setStatus(elements.uploadStatus, error.message || "删除失败", "error");
   }
 }
 

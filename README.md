@@ -26,6 +26,9 @@
 - 文档上传接口
 - 支持 `.txt`、`.md`、`.pdf`
 - 文档切片
+- 文档列表查看
+- 文档删除
+- 同名文档自动替换
 - 硅基流动 Embedding 向量化
 - Qdrant collection 自动创建
 - 向量入库
@@ -62,6 +65,8 @@ http://127.0.0.1:8000/docs
 - `GET /health`：健康检查
 - `POST /chat`：直接调用大模型对话
 - `POST /documents/upload`：上传知识库文档，自动切片并入库
+- `GET /documents`：查看已入库文档列表
+- `DELETE /documents/{filename}`：删除指定文档的全部向量片段
 - `GET /documents/search`：从向量库检索相关知识片段
 - `POST /rag/ask`：检索知识库后，让大模型基于资料回答
 - `GET /sessions/{session_id}/history`：查看会话历史
@@ -174,8 +179,11 @@ docker compose up -d qdrant redis
 
 1. 打开 `http://127.0.0.1:8000/docs`
 2. 在 `POST /documents/upload` 上传知识库文档
-3. 在 `GET /documents/search` 测试检索效果
-4. 在 `POST /rag/ask` 测试基于知识库的客服回答
+3. 在 `GET /documents` 查看已入库文档
+4. 在 `GET /documents/search` 测试检索效果
+5. 在 `POST /rag/ask` 测试基于知识库的客服回答
+
+再次上传同名文件时，系统会先删除旧片段，再写入新片段，避免同一份文档重复入库。
 
 示例请求：
 
