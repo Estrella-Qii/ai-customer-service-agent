@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI 智能客服 Agent</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">AI</div>
+          <div>
+            <h1>智能客服 Agent</h1>
+            <p>RAG 知识库问答控制台</p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>知识库</h2>
+          <form id="upload-form" class="upload-form">
+            <input id="file-input" type="file" accept=".txt,.md,.pdf" />
+            <button type="submit">上传文档</button>
+          </form>
+          <p id="upload-status" class="status">支持 txt、md、pdf</p>
+        </div>
+
+        <div class="panel">
+          <h2>会话</h2>
+          <label for="session-id">Session ID</label>
+          <input id="session-id" type="text" />
+          <div class="button-row">
+            <button id="history-button" type="button">查看历史</button>
+            <button id="clear-button" type="button">清空</button>
+          </div>
+          <p id="memory-status" class="status">同一个 ID 会保留上下文</p>
+        </div>
+
+        <a class="docs-link" href="/docs">打开 Swagger 文档</a>
+      </section>
+
+      <section class="chat-shell">
+        <div class="chat-header">
+          <div>
+            <h2>客服对话</h2>
+            <p>上传知识库后，向客服提问并查看引用来源。</p>
+          </div>
+          <select id="top-k">
+            <option value="3">Top 3</option>
+            <option value="4" selected>Top 4</option>
+            <option value="6">Top 6</option>
+          </select>
+        </div>
+
+        <div id="messages" class="messages">
+          <div class="message assistant">
+            <div class="bubble">
+              你好，我会优先根据已上传的知识库回答问题。可以先上传示例文档，再问我退款、物流或会员相关问题。
+            </div>
+          </div>
+        </div>
+
+        <form id="chat-form" class="composer">
+          <textarea id="question-input" rows="2" placeholder="输入问题，例如：订单已经发货还能退款吗？"></textarea>
+          <button type="submit">发送</button>
+        </form>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

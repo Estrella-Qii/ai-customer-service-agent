@@ -21,6 +21,7 @@
 
 - FastAPI 服务入口
 - Swagger API 文档
+- 简单 Web 聊天页面
 - DeepSeek / OpenAI-compatible LLM 调用
 - 文档上传接口
 - 支持 `.txt`、`.md`、`.pdf`
@@ -46,7 +47,13 @@
 
 ## 接口说明
 
-启动后打开：
+启动后打开 Web 页面：
+
+```text
+http://127.0.0.1:8000
+```
+
+接口文档地址：
 
 ```text
 http://127.0.0.1:8000/docs

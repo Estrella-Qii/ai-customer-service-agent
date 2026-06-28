@@ -1,6 +1,8 @@
 from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.llm import chat
@@ -12,11 +14,12 @@ from routers.sessions import router as sessions_router
 app = FastAPI(
     title="AI 智能客服 Agent",
     description="基于 FastAPI、DeepSeek、Embedding、Redis 和 Qdrant 的 RAG 智能客服后端。",
-    version="0.3.0",
+    version="0.4.0",
 )
 app.include_router(documents_router)
 app.include_router(rag_router)
 app.include_router(sessions_router)
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 class ChatRequest(BaseModel):
@@ -50,3 +53,8 @@ def chat_endpoint(req: ChatRequest):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse("app/static/index.html")
