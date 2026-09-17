@@ -125,7 +125,7 @@ python -m uvicorn app.main:app --reload
 
 本机 API 连接 Docker 中的 Qdrant 时，使用 `QDRANT_URL=http://127.0.0.1:6333`；只有 API 也在 Compose 网络中时才使用 `http://qdrant:6333`。
 
-## 第一次使用
+## RAG 使用流程
 
 1. 确认 Web 页右上角显示 LLM、Embedding 和 Qdrant 已就绪。
 2. 从 `knowledge_base_samples/` 选择一个示例文档上传。
@@ -236,9 +236,7 @@ CI 对 Pull Request 执行相同的 Python 检查、依赖漏洞审计、Compose
 ## 版本与发布
 
 - 变更记录：[CHANGELOG.md](CHANGELOG.md)
-- `v0.1.0` 发布说明草案：[docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
-
-在测试、容器验证和维护者审核完成前，发布说明保持草案状态，不代表已经发布稳定版本。
+- `v0.1.0` 发布说明：[docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
 
 ## License
 
