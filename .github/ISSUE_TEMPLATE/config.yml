@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report
+    url: https://github.com/Estrella-Qii/ai-customer-service-agent/security/advisories/new
+    about: Report vulnerabilities privately. Do not post secrets in public issues.

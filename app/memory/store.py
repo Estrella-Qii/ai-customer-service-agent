@@ -47,7 +47,7 @@ class ConversationMemory:
         if self._redis is None:
             history = _fallback_store.setdefault(session_id, [])
             history.append(message)
-            del history[:-settings.max_history_messages]
+            del history[: -settings.max_history_messages]
             return
 
         key = self._key(session_id)

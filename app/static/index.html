@@ -18,7 +18,7 @@
           </div>
           <div>
             <h1>智能客服 Agent</h1>
-            <p>RAG 知识库工作台</p>
+            <p>Self-hosted RAG workspace</p>
           </div>
         </div>
 
@@ -76,16 +76,21 @@
             </svg>
             API 接口文档
           </a>
+          <p class="privacy-note">文档与会话仅发送到你配置的模型、向量库与会话服务。</p>
         </div>
       </aside>
 
       <main class="chat-container">
         <header class="chat-header">
           <div>
+            <span class="eyebrow">KNOWLEDGE-GROUNDED SUPPORT</span>
             <h2>当前对话</h2>
             <p>上传知识库文档后，客服会基于检索结果回答并展示引用来源。</p>
           </div>
-          <span class="status-indicator">系统就绪</span>
+          <div class="system-status-wrap">
+            <span class="status-indicator status-checking" id="systemStatus">正在检查服务</span>
+            <span class="readiness-details" id="readinessDetails">LLM · Embedding · Qdrant · Memory</span>
+          </div>
         </header>
 
         <div class="chat-history" id="chatHistory">
@@ -95,7 +100,17 @@
               <path d="M8 12h.01M12 12h.01M16 12h.01" />
             </svg>
             <h3>开始一次客服问答</h3>
-            <p>可以先上传示例知识库，再询问退款、物流或会员相关问题。</p>
+            <p id="emptyStateMessage">三步跑通真实 RAG：启动依赖、上传文档、验证带来源的回答。</p>
+            <div class="onboarding-steps" aria-label="快速体验步骤">
+              <div><strong>1</strong><span>启动 Qdrant 与 Redis</span></div>
+              <div><strong>2</strong><span>上传示例知识库</span></div>
+              <div><strong>3</strong><span>提问并核对引用来源</span></div>
+            </div>
+            <div class="sample-prompts" aria-label="示例问题">
+              <button type="button" data-prompt="退款多久到账？">退款多久到账？</button>
+              <button type="button" data-prompt="物流显示签收但我没有收到怎么办？">物流异常怎么办？</button>
+              <button type="button" data-prompt="会员积分会过期吗？">会员积分会过期吗？</button>
+            </div>
           </div>
         </div>
 

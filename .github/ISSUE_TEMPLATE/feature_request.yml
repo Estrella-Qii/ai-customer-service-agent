@@ -1,0 +1,32 @@
+name: Feature request
+description: Propose a scoped improvement grounded in a concrete self-hosted RAG use case.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: Describe the workflow or limitation. Do not invent user metrics.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Explain the smallest useful behavior and API or data-model impact.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope checks
+      options:
+        - label: I checked the Roadmap and existing Issues.
+          required: true
+        - label: This proposal does not require committing secrets or real customer data.
+          required: true
