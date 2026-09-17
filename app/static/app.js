@@ -16,6 +16,9 @@ const elements = {
   loadHistoryBtn: document.getElementById("loadHistoryBtn"),
   clearHistoryBtn: document.getElementById("clearHistoryBtn"),
   refreshDocsBtn: document.getElementById("refreshDocsBtn"),
+  systemStatus: document.getElementById("systemStatus"),
+  readinessDetails: document.getElementById("readinessDetails"),
+  emptyStateMessage: document.getElementById("emptyStateMessage"),
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -31,6 +34,9 @@ document.addEventListener("DOMContentLoaded", () => {
   elements.clearHistoryBtn.addEventListener("click", clearHistory);
   elements.refreshDocsBtn.addEventListener("click", loadDocuments);
   elements.sessionIdInput.addEventListener("change", saveSessionId);
+  document.querySelectorAll("[data-prompt]").forEach((button) => {
+    button.addEventListener("click", () => selectSamplePrompt(button.dataset.prompt));
+  });
 
   elements.questionInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -40,8 +46,44 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   elements.questionInput.addEventListener("input", resizeQuestionInput);
-  loadDocuments();
+  checkReadiness().then((qdrantReady) => {
+    if (qdrantReady) {
+      loadDocuments();
+    } else {
+      elements.documentList.innerHTML = '<p class="muted-text">连接 Qdrant 后显示已入库文档</p>';
+    }
+  });
 });
+
+async function checkReadiness() {
+  try {
+    const response = await fetch("/health/status");
+    const data = await response.json();
+    const checks = data.checks || {};
+    const memoryLabel = checks.memory_backend === "redis" ? "Redis" : "内存回退";
+    elements.readinessDetails.textContent = [
+      checks.llm_configured ? "LLM ✓" : "LLM 未配置",
+      checks.embedding_configured ? "Embedding ✓" : "Embedding 未配置",
+      checks.qdrant ? "Qdrant ✓" : "Qdrant 未连接",
+      memoryLabel,
+    ].join(" · ");
+    const ready = data.status === "ready";
+    elements.systemStatus.className = `status-indicator ${ready ? "status-ready" : "status-not-ready"}`;
+    elements.systemStatus.textContent = ready ? "服务已就绪" : "需要完成配置";
+    return Boolean(checks.qdrant);
+  } catch (error) {
+    elements.systemStatus.className = "status-indicator status-not-ready";
+    elements.systemStatus.textContent = "无法检查服务";
+    elements.readinessDetails.textContent = "请确认 FastAPI 服务已正常启动";
+    return false;
+  }
+}
+
+function selectSamplePrompt(prompt) {
+  elements.questionInput.value = prompt || "";
+  resizeQuestionInput();
+  elements.questionInput.focus();
+}
 
 function createSessionId() {
   if (crypto.randomUUID) {
@@ -74,7 +116,7 @@ function getSessionId() {
 function resetChat(message) {
   elements.chatHistory.innerHTML = "";
   elements.emptyState.style.display = "block";
-  elements.emptyState.querySelector("p").textContent = message;
+  elements.emptyStateMessage.textContent = message;
   elements.chatHistory.appendChild(elements.emptyState);
 }
 

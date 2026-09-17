@@ -14,12 +14,26 @@ env/
 # Environment secrets
 .env
 .env.*
+.env.local
 !.env.example
 
 # Local runtime files
 *.log
 uvicorn*.log
+*.tmp
+data/
+data/*.json
 qdrant_storage/
+redis_data/
+dump.rdb
+appendonlydir/
+*.sqlite
+*.sqlite3
+*.db
+
+# Test / coverage output
+.coverage
+htmlcov/
 
 # IDE / OS
 .idea/

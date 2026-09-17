@@ -1,237 +1,245 @@
-# AI 智能客服 Agent
+# Self-hosted RAG Customer Service Agent
 
-一个面向客服场景的 RAG 智能客服后端项目。它可以上传知识库文档，自动切片、向量化、写入向量数据库，然后基于检索结果调用大模型生成客服回复。
+[![CI](https://github.com/Estrella-Qii/ai-customer-service-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Estrella-Qii/ai-customer-service-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB.svg)](https://www.python.org/)
 
-项目当前默认使用：
+一个可自托管的企业 RAG 智能客服 Agent。它让团队上传自己的 `.txt`、`.md` 或 `.pdf` 知识文档，使用 Qdrant 检索相关片段，通过任意 OpenAI-compatible LLM 生成有来源依据的客服回答，并用 Redis 保存多轮会话。
 
-- FastAPI：提供 HTTP API 和 Swagger 文档
-- DeepSeek：作为 LLM 生成回答
-- 硅基流动：提供 OpenAI-compatible API 和 Embedding
-- LangChain：文档切片、Embedding、向量库集成
-- LangGraph：编排客服 Agent 工作流
-- Qdrant：向量数据库
-- Redis：保存会话记忆
-- Docker Compose：启动 Qdrant，也可以同时启动 API 服务
+项目还包含一个实验性的知识库治理闭环：从未回答问题中识别知识缺口、生成待审草稿，经人工批准后再写回向量库。它适合本地验证、二次开发和小规模内部试用；当前不是未经加固即可直接暴露到公网的生产客服系统。
 
-## 当前完成度
+## 项目解决什么问题
 
-这个项目目前是一个可以演示的 RAG 客服后端 MVP。
+企业客服机器人经常卡在三个地方：知识分散、回答缺乏依据、知识库更新滞后。本项目把这些环节连接起来：
 
-已完成：
+- 文档上传后自动解析、切片、向量化并存入 Qdrant。
+- 回答前先检索企业知识库，返回引用文件、片段编号和相似度分数。
+- 用 Session ID 保留多轮上下文；Redis 不可用时可降级到进程内存。
+- 记录缺少可靠来源的问题，帮助维护者发现知识覆盖缺口。
+- 生成的知识草稿必须经过人工 `approve / edit / reject`，不会自动污染知识库。
 
-- FastAPI 服务入口
-- Swagger API 文档
-- 简单 Web 聊天页面
-- DeepSeek / OpenAI-compatible LLM 调用
-- 文档上传接口
-- 支持 `.txt`、`.md`、`.pdf`
-- 文档切片
-- 文档列表查看
-- 文档删除
-- 同名文档自动替换
-- 硅基流动 Embedding 向量化
-- Qdrant collection 自动创建
-- 向量入库
-- 相似度检索
-- RAG 问答接口
-- Redis 会话记忆
-- LangGraph Agent 工作流
-- 会话历史查询与清空接口
-- 示例知识库文档
-- `.env.example` 示例配置
-- Dockerfile
-- Docker Compose
+## 核心特性
 
-后续计划：
+- FastAPI API、Swagger 文档和开箱即用的 Web 工作台
+- LangGraph 编排的 RAG 问答与知识治理工作流
+- OpenAI-compatible LLM 与 Embedding 接口
+- Qdrant 文档入库、列表、替换、删除和相似度检索
+- Redis 多轮会话，带受控的内存降级
+- 文档上传类型、文件名、大小和请求长度校验
+- 依赖就绪检查、结构化来源信息和对外错误脱敏
+- Docker Compose 本地部署、自动化测试、Lint、依赖审计和镜像构建 CI
 
-- 增加鉴权、限流、日志等生产能力
+## 架构
 
-## 接口说明
+```mermaid
+flowchart LR
+    Admin[知识库维护者] -->|上传文档| API[FastAPI]
+    User[客服或终端用户] -->|提问 + Session ID| API
+    API --> RAG[LangGraph RAG workflow]
+    RAG --> Retriever[LangChain retriever]
+    Retriever --> Q[(Qdrant)]
+    RAG --> LLM[OpenAI-compatible LLM]
+    RAG <--> Redis[(Redis / memory fallback)]
+    RAG -->|回答 + sources| User
 
-启动后打开 Web 页面：
+    RAG -->|低置信度或无来源问题| Governance[Knowledge governance workflow]
+    Governance --> Drafts[(Local JSON draft store)]
+    Reviewer[人工审核者] -->|edit / approve / reject| Drafts
+    Drafts -->|approved draft only| Q
+```
+
+主链路：
 
 ```text
-http://127.0.0.1:8000
+问题 -> 加载会话 -> Qdrant 检索 -> LLM 基于上下文回答 -> 保存会话 -> 返回来源
 ```
 
-接口文档地址：
+治理链路：
 
 ```text
-http://127.0.0.1:8000/docs
+未覆盖问题 -> 覆盖判断 -> 缺口聚类 -> 草稿生成 -> 人工审核 -> Qdrant 回流
 ```
 
-主要接口：
+更详细的节点和数据流见 [治理架构说明](docs/governance_agent_architecture.md)。
 
-- `GET /health`：健康检查
-- `POST /chat`：直接调用大模型对话
-- `POST /documents/upload`：上传知识库文档，自动切片并入库
-- `GET /documents`：查看已入库文档列表
-- `DELETE /documents/{filename}`：删除指定文档的全部向量片段
-- `GET /documents/search`：从向量库检索相关知识片段
-- `POST /rag/ask`：检索知识库后，让大模型基于资料回答
-- `GET /sessions/{session_id}/history`：查看会话历史
-- `DELETE /sessions/{session_id}`：清空会话历史
+## 快速启动
 
-## 项目结构
+### 方式一：Docker Compose
 
-```text
-app/
-  core/
-    config.py          # 环境变量配置
-  rag/
-    document_loader.py # 文档解析与切片
-    embeddings.py      # Embedding 配置
-    vector_store.py    # Qdrant 向量库
-    retriever.py       # 检索封装
-    qa.py              # RAG 问答逻辑
-  agent/
-    workflow.py        # LangGraph 客服工作流
-  memory/
-    store.py           # Redis 会话记忆
-  llm.py               # LLM 调用封装
-  main.py              # FastAPI 入口
-routers/
-  documents.py         # 文档上传与检索接口
-  rag.py               # RAG 问答接口
-knowledge_base_samples/
-  refund_policy.md     # 示例：退款政策
-  shipping_policy.md   # 示例：物流政策
-  membership_faq.md    # 示例：会员 FAQ
+要求：Docker Compose v2，以及可用的 OpenAI-compatible Chat / Embedding 服务。
+
+```bash
+git clone https://github.com/Estrella-Qii/ai-customer-service-agent.git
+cd ai-customer-service-agent
+cp .env.example .env
 ```
 
-## 本地启动
+编辑 `.env`，至少填入：
 
-### 1. 创建虚拟环境
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
+```dotenv
+LLM_API_KEY=replace_me
+LLM_BASE_URL=https://your-provider.example/v1
+LLM_MODEL=your-chat-model
+SILICONFLOW_API_KEY=replace_me
+SILICONFLOW_BASE_URL=https://your-provider.example/v1
+EMBEDDING_MODEL=your-embedding-model
 ```
 
-### 2. 安装依赖
+然后启动：
 
-```powershell
-pip install -r requirements.txt
-```
-
-### 3. 配置环境变量
-
-复制 `.env.example` 为 `.env`：
-
-```powershell
-copy .env.example .env
-```
-
-然后填入自己的密钥：
-
-```text
-LLM_API_KEY=your_llm_api_key_here
-SILICONFLOW_API_KEY=your_siliconflow_api_key_here
-```
-
-不要把 `.env` 上传到 GitHub。
-
-### 4. 启动 Qdrant 和 Redis
-
-```powershell
-docker compose up -d qdrant redis
-```
-
-### 5. 启动 FastAPI
-
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```bash
+docker compose up --build
 ```
 
 打开：
 
-```text
-http://127.0.0.1:8000/docs
+- Web 工作台：<http://127.0.0.1:8000>
+- Swagger API：<http://127.0.0.1:8000/docs>
+- 就绪检查：<http://127.0.0.1:8000/health/ready>
+
+### 方式二：本机运行 API，Docker 只运行依赖
+
+```bash
+python -m venv .venv
 ```
 
-## Docker Compose 启动
-
-先准备 `.env`：
+Windows PowerShell：
 
 ```powershell
-copy .env.example .env
-```
-
-填好密钥后启动：
-
-```powershell
-docker compose up --build
-```
-
-API 地址：
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-如果只想启动 Qdrant，本地用 Python 跑 API：
-
-```powershell
+.\.venv\Scripts\Activate.ps1
+Copy-Item .env.example .env
+pip install -r requirements.txt
 docker compose up -d qdrant redis
+python -m uvicorn app.main:app --reload
 ```
 
-## 使用流程
+macOS / Linux：
 
-1. 打开 `http://127.0.0.1:8000/docs`
-2. 在 `POST /documents/upload` 上传知识库文档
-3. 在 `GET /documents` 查看已入库文档
-4. 在 `GET /documents/search` 测试检索效果
-5. 在 `POST /rag/ask` 测试基于知识库的客服回答
-
-再次上传同名文件时，系统会先删除旧片段，再写入新片段，避免同一份文档重复入库。
-
-示例请求：
-
-```json
-{
-  "question": "订单已经发货还能退款吗？",
-  "top_k": 4,
-  "session_id": "demo-user-001"
-}
+```bash
+source .venv/bin/activate
+cp .env.example .env
+pip install -r requirements.txt
+docker compose up -d qdrant redis
+python -m uvicorn app.main:app --reload
 ```
 
-返回结果会包含：
+本机 API 连接 Docker 中的 Qdrant 时，使用 `QDRANT_URL=http://127.0.0.1:6333`；只有 API 也在 Compose 网络中时才使用 `http://qdrant:6333`。
 
-- `answer`：大模型生成的客服回复
-- `session_id`：本次会话 ID
-- `sources`：引用的文档来源
-- `contexts`：检索到的原始知识片段
+## 第一次使用
 
-如果不传 `session_id`，系统会自动生成一个新的会话 ID。下一次请求带上同一个 `session_id`，客服就能参考前文进行多轮对话。
+1. 确认 Web 页右上角显示 LLM、Embedding 和 Qdrant 已就绪。
+2. 从 `knowledge_base_samples/` 选择一个示例文档上传。
+3. 点击示例问题，或输入“退款多久到账？”。
+4. 检查回答下方是否显示来源文件、Chunk 编号与 Score。
+5. 使用相同 Session ID 追问，验证多轮上下文；再用“加载历史”查看服务端保存的消息。
 
-## 测试
+Web 页不会把示例数据伪装成真实企业数据。仓库内示例政策和问题均为 mock 内容。
 
-```powershell
-python -m unittest discover -s tests
+## API 示例
+
+### 上传知识文档
+
+```bash
+curl -X POST http://127.0.0.1:8000/documents/upload \
+  -F "file=@knowledge_base_samples/refund_policy.md"
 ```
 
-项目已配置 GitHub Actions，会在 push 和 pull request 时自动运行测试。
+### RAG 问答
 
-## 知识库文档从哪里来
+```bash
+curl -X POST http://127.0.0.1:8000/rag/ask \
+  -H "Content-Type: application/json" \
+  -d '{
+    "question": "退款多久到账？",
+    "top_k": 4,
+    "session_id": "example-session"
+  }'
+```
 
-可以使用真实业务资料，例如：
+响应包含 `answer`、`session_id`、`memory_backend` 和真实检索得到的 `sources`；若向量库没有对应文档，项目不会伪造引用。
 
-- 售后政策、退款政策、物流政策
-- 产品说明书、安装指南、使用教程
-- 常见问题 FAQ
-- 客服历史高频问题整理
-- 官网帮助中心文章
-- 会员规则、优惠券规则、活动规则
-- 内部 SOP 和客服话术
+### 查看与清空会话
 
-建议先整理成 `.md` 或 `.txt` 文件。每个文件围绕一个主题，标题清晰，段落不要太长。
+```bash
+curl http://127.0.0.1:8000/sessions/example-session/history
+curl -X DELETE http://127.0.0.1:8000/sessions/example-session
+```
 
-## 配置说明
+### 分析知识缺口
 
-项目使用 `.env.example` 作为配置模板。本地运行时复制一份为 `.env`，填入自己的模型和向量化服务 API Key 即可启动。
+```bash
+curl -X POST http://127.0.0.1:8000/governance/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "questions": ["优惠券过期后还能补发吗？", "发票抬头可以修改吗？"],
+    "top_k": 4
+  }'
+```
 
-运行过程中产生的虚拟环境、缓存文件和本地向量库数据会保存在本机环境中，不影响项目代码结构。
+完整闭环可运行 `python scripts/demo_governance_flow.py`，说明见 [Demo 指南](docs/demo_script.md)。
+
+## 配置
+
+| 变量 | 必需 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| `LLM_API_KEY` | 是 | 空 | Chat 模型密钥 |
+| `LLM_BASE_URL` | 是 | 空 | OpenAI-compatible `/v1` 地址 |
+| `LLM_MODEL` | 是 | `deepseek-ai/DeepSeek-V4-Flash` | Chat 模型名 |
+| `SILICONFLOW_API_KEY` | 是 | 空 | Embedding 密钥；名称保留用于兼容现有配置 |
+| `SILICONFLOW_BASE_URL` | 是 | `https://api.siliconflow.cn/v1` | OpenAI-compatible Embedding 地址 |
+| `EMBEDDING_MODEL` | 是 | `Qwen/Qwen3-Embedding-4B` | Embedding 模型名 |
+| `EMBEDDING_DIMENSION` | 否 | `0` | `0` 表示首次调用时自动探测 |
+| `QDRANT_URL` | 否 | `http://127.0.0.1:6333` | Qdrant HTTP 地址 |
+| `QDRANT_COLLECTION` | 否 | `customer_service_docs` | Collection 名称 |
+| `REDIS_URL` | 否 | `redis://localhost:6379/0` | 会话存储地址 |
+| `MAX_UPLOAD_BYTES` | 否 | `10485760` | 单个上传文件大小上限 |
+| `MAX_QUESTION_CHARS` | 否 | `4000` | 单次问题字符上限 |
+
+切换 Embedding 模型后，如果向量维度不同，应重新创建 demo collection：
+
+```bash
+python scripts/reset_demo_store.py
+```
+
+这会删除当前配置的 Qdrant collection。请勿对未备份的生产数据运行该脚本。
+
+## 自部署说明
+
+- API 容器以非 root 用户运行，Qdrant 数据写入 `./qdrant_storage`，Redis 使用命名卷持久化。
+- Compose 仅把 API 和 Qdrant 调试端口暴露给宿主机；Redis 留在内部网络。
+- `/health` 是进程存活检查；`/health/ready` 会检查配置和 Qdrant，并报告 Redis 或内存后端。
+- 本地 JSON 治理存储适用于单实例 MVP。多副本部署前必须迁移到事务数据库。
+- 当前没有身份认证、租户隔离和速率限制。不要把实例直接暴露到公网；建议在反向代理或零信任网关后添加 TLS、认证和限流。
+
+## 测试与质量检查
+
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+ruff format --check .
+python -m unittest discover -s tests -v
+pip-audit -r requirements.txt
+docker compose config --quiet
+docker build -t ai-customer-service-agent:local .
+```
+
+CI 对 Pull Request 执行相同的 Python 检查、依赖漏洞审计、Compose 校验和镜像构建。
+
+## 项目边界
+
+当前版本没有声称拥有真实企业用户、下载量、线上 SLA 或离线效果指标。尚未解决的生产化问题包括鉴权与多租户、限流、持久化审核数据库、评测集、可观测性和数据保留策略；详见 [Roadmap](ROADMAP.md)。
+
+## 参与贡献
+
+欢迎提交可复现的 Bug、文档改进和范围清晰的功能 PR。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [SECURITY.md](SECURITY.md)。行为规范见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
+
+## 版本与发布
+
+- 变更记录：[CHANGELOG.md](CHANGELOG.md)
+- `v0.1.0` 发布说明草案：[docs/releases/v0.1.0.md](docs/releases/v0.1.0.md)
+
+在测试、容器验证和维护者审核完成前，发布说明保持草案状态，不代表已经发布稳定版本。
 
 ## License
 
-MIT
+[MIT](LICENSE)
