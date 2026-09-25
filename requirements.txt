@@ -1,6 +1,6 @@
 fastapi>=0.115,<1
 uvicorn>=0.32,<1
-python-dotenv>=1.0,<2
+python-dotenv>=1.2.3,<2
 httpx>=0.27,<1
 openai>=1.50,<3
 python-multipart>=0.0.18,<1
